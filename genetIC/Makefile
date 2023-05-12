@@ -123,15 +123,15 @@ ifeq ($(HOST3), hyp)
         CFLAGS += -Wextra
 endif
 
-all: genetIC
+all: hectIC
 
 %.o: %.cpp ; $(CXX) $(CFLAGS) $(CODEOPTIONS) $(GIT_VARIABLES) -I$(CPATH) $(FFTW) -c $< -o $@
 
-genetIC: src/main.o src/tools/filesystem.o src/tools/progress/progress.o src/tools/logging.o
-		$(CXX) $(CFLAGS) -o genetIC $(GIT_VARIABLES) -I$(CPATH) $(FFTW) src/main.o src/tools/filesystem.o src/tools/progress/progress.o src/tools/logging.o -L$(LPATH) $(GSLFLAGS) -lm $(FFTWLIB)
+hectIC: src/main.o src/tools/filesystem.o src/tools/progress/progress.o src/tools/logging.o
+		$(CXX) $(CFLAGS) -o hectIC $(GIT_VARIABLES) -I$(CPATH) $(FFTW) src/main.o src/tools/filesystem.o src/tools/progress/progress.o src/tools/logging.o -L$(LPATH) $(GSLFLAGS) -lm $(FFTWLIB)
 
 clean:
-	rm -f genetIC
+	rm -f hectIC
 	rm -f src/*.o
 	rm -f src/*/*.o
 	rm -f src/*/*/*.o
