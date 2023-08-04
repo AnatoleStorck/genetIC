@@ -140,6 +140,7 @@ void setup_parser(tools::ClassDispatch<ICf, void> &dispatch) {
   dispatch.add_class_route("splice", &ICf::splice_density);
   dispatch.add_class_route("splice_potential", &ICf::splice_potential);
 
+  dispatch.add_class_route("splice_potential_restart", &ICf::splice_potential_restart);
   // Write objects to files
   // dispatch.add_class_route("dump_grid", &ICf::dumpGrid);
   dispatch.add_class_route("dump_grid", static_cast<void (ICf::*)(size_t)>(&ICf::dumpGrid));
