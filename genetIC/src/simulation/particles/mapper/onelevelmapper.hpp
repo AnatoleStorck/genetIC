@@ -34,12 +34,10 @@ namespace particle {
       unsigned int gadgetParticleType; //!< Gadget type for the particle species pointed to by this mapper
 
     protected:
-
       //! Dereferences the iterator with the grid for this level, and the current position
-      virtual void
-      dereferenceIterator(const iterator *pIterator, ConstGridPtrType &gp, size_t &i) const override {
-        gp = pGrid;
-        i = pIterator->i;
+      virtual std::pair<ConstGridPtrType, size_t>
+      dereferenceIterator(const iterator *pIterator) const override {
+        return std::make_pair(pGrid, pIterator->i);
       }
 
       /*! \brief Decrements the iterator by the specified step.
@@ -50,13 +48,15 @@ namespace particle {
         pIterator->i -= increment;
       }
 
-      //! Returns the gadget type associated to this one level mapper
-      virtual unsigned int
-      gadgetParticleTypeFromIterator(const iterator * /*pIterator*/) const override {
-        return gadgetParticleType;
+      void incrementIteratorBy(iterator *pIterator, size_t increment) const override {
+        pIterator->i += increment;
       }
 
     public:
+      bool containsGadgetParticleType(unsigned int t) override {
+        return (t==gadgetParticleType);
+      }
+
       /*! \brief Outputs debug information about the one level mapper to the specified stream
         \param s - stream to output to.
         \param level - level about which to output debug information.
@@ -64,7 +64,7 @@ namespace particle {
       virtual void debugInfo(std::ostream &s, int level = 0) const override {
         tools::indent(s, level);
         pGrid->debugInfo(s);
-        s << std::endl;
+        s << " (gadgetParticleType=" << gadgetParticleType <<")" << std::endl;
       }
 
       /*! \brief Outputs debug information about the specified iterator
@@ -120,9 +120,12 @@ namespace particle {
         return true;
       }
 
-      //! Change the gadget type of this one level mapper (default is dark matter)
-      void setGadgetParticleType(unsigned int type) {
+      void setGadgetParticleType(unsigned int type) override {
         gadgetParticleType = type;
+      }
+
+      unsigned int getGadgetParticleTypeForFinestGrid() override {
+        return gadgetParticleType;
       }
 
       //! Go to the begining of the particles of the specified gadget type.
@@ -150,16 +153,23 @@ namespace particle {
         \param toGrids - vector of grids - only create usable mappers if this grid is a proxy for one of these.
       */
       std::pair<MapPtrType, MapPtrType> splitMass(T massRatio, const std::vector<GridPtrType> &toGrids) override {
-        if (pGrid->isProxyForAnyOf(toGrids)) {
-          return std::make_pair(
-            std::make_shared<OneLevelParticleMapper<GridDataType>>(
-              this->pGrid->makeScaledMassVersion(massRatio)),
-            std::make_shared<OneLevelParticleMapper<GridDataType>>(
-              this->pGrid->makeScaledMassVersion(1.0 - massRatio)));
+        std::shared_ptr<OneLevelParticleMapper<GridDataType>> s1,s2;
+
+        if(pGrid->isProxyForAnyOf(toGrids)) {
+          s1 = std::make_shared<OneLevelParticleMapper<GridDataType>>(
+            this->pGrid->makeScaledMassVersion(massRatio));
+          s2 = std::make_shared<OneLevelParticleMapper<GridDataType>>(
+            this->pGrid->makeScaledMassVersion(1.0 - massRatio));
+          s1->setGadgetParticleType(0);
+          s2->setGadgetParticleType(this->gadgetParticleType);
         } else {
-          return std::make_pair(std::shared_ptr<OneLevelParticleMapper<GridDataType>>(nullptr),
-                                std::make_shared<OneLevelParticleMapper<GridDataType>>(this->pGrid));
+          s1 = nullptr;
+          s2 = std::make_shared<OneLevelParticleMapper<GridDataType>>(this->pGrid);
+          s2->setGadgetParticleType(this->gadgetParticleType);
         }
+
+        return std::make_pair(s1, s2);
+
       }
 
       /*! \brief sub/super samples dark matter
@@ -188,11 +198,15 @@ namespace particle {
       }
 
       MapPtrType withIndependentFlags() override {
-        return std::make_shared<OneLevelParticleMapper<GridDataType>>(this->pGrid->withIndependentFlags());
+        MapPtrType result = std::make_shared<OneLevelParticleMapper<GridDataType>>(this->pGrid->withIndependentFlags());
+        result->setGadgetParticleType(this->gadgetParticleType);
+        return result;
       }
 
       MapPtrType withCoupledFlags() override {
-        return std::make_shared<OneLevelParticleMapper<GridDataType>>(this->pGrid->withCoupledFlags());
+        MapPtrType result = std::make_shared<OneLevelParticleMapper<GridDataType>>(this->pGrid->withCoupledFlags());
+        result->setGadgetParticleType(this->gadgetParticleType);
+        return result;
       }
 
 

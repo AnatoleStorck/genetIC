@@ -71,7 +71,9 @@ namespace particle {
         \param increment - amount to increment pIterator by
       */
       virtual void incrementIteratorBy(iterator *pIterator, size_t increment) const {
-        pIterator->i += increment;
+        // should be optimized where possible in child classes:
+        for (size_t i = 0; i < increment; ++i)
+          incrementIterator(pIterator);
       }
 
       //! Decrement the specified iterator by the specified number of steps. Only implemented by derived mapper classes.
@@ -79,18 +81,21 @@ namespace particle {
         throw std::runtime_error("Attempting to reverse in a mapper that does not support random access");
       }
 
-      //! Dereference the specified iterator, storing the grid pointer of the level pointed to and index of the cell pointed to on that level. Only implemented by derived mapper classes
-      virtual void dereferenceIterator(const iterator *, ConstGridPtrType &, size_t &) const {
+      /*! \brief Dereference the specified iterator, working out the grid and cell index it refers to
+          \param pIterator - iterator to dereference
+          \returns gp - pointer to the grid
+          \returns i - pointer to the cell within that grid
+      */
+      virtual std::pair<ConstGridPtrType, size_t> dereferenceIterator(const iterator *) const {
         throw std::runtime_error("There is no grid associated with this particle mapper");
       }
 
-      //! Get the particle type of the specified iterator. Implemented only by derived mapper classes
-      virtual unsigned int
-      gadgetParticleTypeFromIterator(const iterator * /*pIterator*/) const {
-        throw std::runtime_error("There is no gadget particle type known for this particle mapper");
-      }
-
     public:
+
+      //! True if this mapper contains particles with the specified gadget particle type
+      virtual bool containsGadgetParticleType(unsigned int t)  {
+        return false;
+      }
 
       /*! \brief Outputs debug information about the mapper. Should be over-written by derived classes.
         \param s - stream to output debug information to.
@@ -328,6 +333,16 @@ namespace particle {
 
       //! Couple the flags on levels which are virtual copies of each other, which is the default behaviour.
       virtual MapPtrType withCoupledFlags() = 0;
+
+      //! Change the gadget particle type. May throw an exception if this is a multi-level mapper
+      virtual void setGadgetParticleType(unsigned int type) {
+        throw std::runtime_error("Cannot set gadget particle type of this type of mapper");
+      }
+
+      //! Get the gadget particle type. May throw an exception if this is a multi-level mapper
+      virtual unsigned int getGadgetParticleTypeForFinestGrid() {
+        throw std::runtime_error("Cannot get gadget particle type of this type of mapper");
+      }
 
 
     };

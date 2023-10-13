@@ -1,5 +1,5 @@
 # Reasonably sensible defaults
-CFLAGS ?= -Wall -g -lpthread -O0 -fopenmp -std=c++14 -fdiagnostics-color=auto -I`pwd`
+CFLAGS ?= -Wall -g -lpthread -O3 -fopenmp -std=c++14 -fdiagnostics-color=auto -I`pwd`
 
 # Here are code options. Probably don't fiddle with these unless you know what you're doing.
 #
@@ -20,29 +20,23 @@ CFLAGS ?= -Wall -g -lpthread -O0 -fopenmp -std=c++14 -fdiagnostics-color=auto -I
 # -DFILTER_ON_COARSE_GRID: When moving long wavelength information onto a zoom grid, filters on the base grid
 #    and then interpolates into the zoom, rather than the default which is to interpolate and then filter.
 
-CODEOPTIONS  = -DDOUBLEPRECISION -DOUTPUT_IN_DOUBLEPRECISION -DCUBIC_INTERPOLATION -DFRACTIONAL_K_SPLIT=0.3 -DFRACTIONAL_FILTER_TEMPERATURE=0.1 -DFILTER_ON_COARSE_GRID #-DZELDOVICH_GRADIENT_FOURIER_SPACE
+CODEOPTIONS  = -DDOUBLEPRECISION -DOUTPUT_IN_DOUBLEPRECISION -DCUBIC_INTERPOLATION -DFRACTIONAL_K_SPLIT=0.3 -DFRACTIONAL_FILTER_TEMPERATURE=0.1 -DFILTER_ON_COARSE_GRID -DZELDOVICH_GRADIENT_FOURIER_SPACE
 CPATH ?= /opt/local/include/
 LPATH ?= /opt/local/lib
 
 GSLFLAGS = -lgsl -lgslcblas
 
-# Use -DFFTW3 to use FFTW3 (instead of FFTW 2).
-#
-# Additionally use -DFFTW3_THREADS=n to use threads. This will use n threads
+# Use -DFFTW3_THREADS=n to use threads. This will use n threads
 # UNLESS you are compiling with openmp, in which case you do not need to set n
 # as it will automatically be set to omp_get_num_threads()
 #
 # Note you have to link to fftw3 and fftw3_threads (or fftw3_omp)
 # if you are using threads
+#
+# Note that genetIC no longer supports the use of FFTW2
 
 FFTW = -DFFTW3 -DFFTW_THREADS
-FFTWLIB = -lfftw3 -lfftw3_threads
-
-# Example for FFTW2:
-
-#FFTW    = -DFFTW_TYPE_PREFIX=1
-#FFTWLIB = -ldfftw -ldrfftw
-
+FFTWLIB = -lfftw3 -lfftw3f -lfftw3_threads
 
 # Provide information on the git repository, to be printed out on each run
 GIT_MODIFIED = $(shell git ls-files -m 2>/dev/null | tr "\n" " " )
@@ -55,6 +49,18 @@ GIT_VARIABLES = -DGIT_VERSION='"$(GIT_VERSION)"' -DGIT_MODIFIED='"$(GIT_MODIFIED
 HOST	= $(shell if [ `which scutil 2>/dev/null` ]; then scutil --get ComputerName | cut -c1-5; else hostname | cut -c1-5 ; fi )
 HOST3	= $(shell hostname | cut -c1-3)
 
+USE_CUFFT=0
+ifeq ($(USE_CUFFT), 1)
+	CPATH = /opt/local/include/:/opt/cuda/include/cufft/:/opt/cuda/targets/x86_64-linux/include/
+	LPATH = /opt/local/lib:/opt/cuda/lib64/
+
+	CODEOPTIONS += -DUSE_CUFFT
+	FFTW = -DFFTW3
+	FFTWLIB = -lcufft -lcufftw
+	OLD_CFLAGS=$(CFLAGS)
+	CFLAGS=-O3 -I`pwd` -Xcompiler="-O3 -fopenmp -std=c++14 -Wall"
+	CXX=nvcc
+endif
 ifeq ($(HOST3), Ana)
 	CXX = /opt/homebrew/bin/c++-13
 	CPATH ?= /opt/local/include/
@@ -87,8 +93,8 @@ ifeq ($(HOST), clema)
  endif
 
 ifeq ($(HOST), jasmi)
-	CXX = /opt/local/bin/g++-mp-9   -L/opt/local/lib/
-	CFLAGS = -O2 -g -fopenmp -std=c++14 -I`pwd` -DOPENMP -DDOUBLEPRECISION
+	CXX = /opt/local/bin/g++-mp-11   -L/opt/local/lib/
+	CFLAGS = -O3 -g -fopenmp -std=c++14 -I`pwd` -DOPENMP -DDOUBLEPRECISION
 endif
 
 ifeq ($(HOST), Rhodo)
