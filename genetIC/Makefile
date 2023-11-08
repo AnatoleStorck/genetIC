@@ -20,7 +20,8 @@ CFLAGS ?= -Wall -g -lpthread -O3 -fopenmp -std=c++14 -fdiagnostics-color=auto -I
 # -DFILTER_ON_COARSE_GRID: When moving long wavelength information onto a zoom grid, filters on the base grid
 #    and then interpolates into the zoom, rather than the default which is to interpolate and then filter.
 
-CODEOPTIONS  = -DDOUBLEPRECISION -DOUTPUT_IN_DOUBLEPRECISION -DCUBIC_INTERPOLATION -DFRACTIONAL_K_SPLIT=0.3 -DFRACTIONAL_FILTER_TEMPERATURE=0.1 -DFILTER_ON_COARSE_GRID -DZELDOVICH_GRADIENT_FOURIER_SPACE
+# Comment out -DZELDOVICH_GRADIENT_FOURIER_SPACE for potential splicing
+CODEOPTIONS  = -DDOUBLEPRECISION -DOUTPUT_IN_DOUBLEPRECISION -DCUBIC_INTERPOLATION -DFRACTIONAL_K_SPLIT=0.3 -DFRACTIONAL_FILTER_TEMPERATURE=0.1 -DFILTER_ON_COARSE_GRID #-DZELDOVICH_GRADIENT_FOURIER_SPACE
 CPATH ?= /opt/local/include/
 LPATH ?= /opt/local/lib
 
@@ -49,18 +50,41 @@ GIT_VARIABLES = -DGIT_VERSION='"$(GIT_VERSION)"' -DGIT_MODIFIED='"$(GIT_MODIFIED
 HOST	= $(shell if [ `which scutil 2>/dev/null` ]; then scutil --get ComputerName | cut -c1-5; else hostname | cut -c1-5 ; fi )
 HOST3	= $(shell hostname | cut -c1-3)
 
+# For use with COSMOS
 USE_CUFFT=0
-ifeq ($(USE_CUFFT), 1)
-	CPATH = /opt/local/include/:/opt/cuda/include/cufft/:/opt/cuda/targets/x86_64-linux/include/
-	LPATH = /opt/local/lib:/opt/cuda/lib64/
+USE_INTEL=0
+ifeq ($(HOST3), cos)
+	ifeq ($(USE_INTEL), 0)
+		CXX = /sw/easybuild_milan/software/GCCcore/12.3.0/bin/g++
+		ifeq ($(USE_CUFFT), 1)
+			CXX = nvcc
+			CPATH = /sw/easybuild_milan/software/GSL/2.7-GCC-11.3.0/include/:/opt/local/include/:/opt/cuda/include/cufft/:/opt/cuda/targets/x86_64-linux/include/
+			LPATH = /sw/easybuild_milan/software/GSL/2.7-GCC-11.3.0/lib:/opt/local/lib:/opt/cuda/lib64/
+			CFLAGS = -O3 -I`pwd` -Xcompiler="-O3 -fopenmp -std=c++14 -Wall"
 
-	CODEOPTIONS += -DUSE_CUFFT
-	FFTW = -DFFTW3
-	FFTWLIB = -lcufft -lcufftw
-	OLD_CFLAGS=$(CFLAGS)
-	CFLAGS=-O3 -I`pwd` -Xcompiler="-O3 -fopenmp -std=c++14 -Wall"
-	CXX=nvcc
+			CODEOPTIONS += -DUSE_CUFFT
+			FFTW = -DFFTW3
+			FFTWLIB = -lcufft -lcufftw
+			OLD_CFLAGS = $(CFLAGS)
+		endif
+	endif
+	ifeq ($(USE_INTEL), 1)
+		CXX = /sw/easybuild_milan/software/intel-compilers/2022.1.0/compiler/2022.1.0/linux/bin/intel64/icpc
+		CFLAGS = -Ofast -fopenmp -std=c++14 -I`pwd` -DOPENMP -DDOUBLEPRECISION
+#		ifeq ($(USE_CUFFT), 1)
+#			NVCC = nvcc
+#			CPATH = /sw/easybuild_milan/software/GSL/2.7-GCC-11.3.0/include/:/opt/cuda/include/cufft/:/opt/cuda/targets/x86_64-linux/include/
+#			LPATH = /sw/easybuild_milan/software/GSL/2.7-GCC-11.3.0/lib:/opt/cuda/lib64/
+#			CFLAGS = -Ofast -fopenmp -std=c++14 -I`pwd` -DOPENMP -DDOUBLEPRECISION
+#			NVCCFLAGS = -O3 -I`pwd` --allow-unsupported-compiler -Xcompiler="-O3 -fopenmp -std=c++14 -Wall"
+#
+#			CODEOPTIONS += -DUSE_CUFFT
+#			FFTW = -DFFTW3
+#			FFTWLIB = -lcufft -lcufftw
+#		endif
+	endif
 endif
+
 ifeq ($(HOST3), Ana)
 	CXX = /opt/homebrew/bin/c++-13
 	CPATH ?= /opt/local/include/
