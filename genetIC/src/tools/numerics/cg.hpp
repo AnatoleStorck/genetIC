@@ -19,7 +19,8 @@ namespace tools {
       fields::Field<T> direction = -residual;
       fields::Field<T> x = fields::Field<T>(b.getGrid(), false);
 
-      double scale = b.norm();
+      //double scale = b.norm();
+      double scale = b.Maximum(); //for minimizer comparison
 
       if(scale==0.0) {
         logging::entry(logging::warning) << "Conjugate gradient: result is zero!" << std::endl;
@@ -40,11 +41,13 @@ namespace tools {
         residual = Q(x);
         residual -= b;
 
-        auto norm = residual.norm();
+        //auto norm = residual.norm();
+        auto norm = residual.Maximum(); //for minimizer comparison
         if (norm < rtol * scale || norm < atol)
           break;
 
-        logging::entry() << "Conjugate gradient iteration " << i << " residual=" << norm << std::endl;
+        //logging::entry() << "Conjugate gradient iteration " << i << " residual=" << norm << std::endl;
+        logging::entry() << "CG iteration " << i << " maximum=" << norm << std::endl; //for minimizer comparison
 
         // update direction for next cycle; must be Q-orthogonal to all previous updates
         double beta = residual.innerProduct(Q_direction) / direction.innerProduct(Q_direction);
