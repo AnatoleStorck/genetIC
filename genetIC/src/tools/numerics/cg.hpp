@@ -27,6 +27,8 @@ namespace tools {
         return x;
       }
 
+      logging::entry() << "Splicing will stop when the maximum drops below " << rtol * scale << std::endl;
+
       size_t dimension = b.getGrid().size3;
 
       size_t i;
