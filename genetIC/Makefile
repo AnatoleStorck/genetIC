@@ -86,9 +86,9 @@ ifeq ($(HOST3), cos)
 endif
 
 ifeq ($(HOST3), Ana)
-	CXX = /opt/homebrew/bin/c++-13
-	CPATH ?= /opt/homebrew/include/
-	LPATH ?= /opt/homebrew/lib
+	CXX = /opt/homebrew/bin/c++-14
+	CPATH = /opt/homebrew/include/
+	LPATH = /opt/homebrew/lib
 	CFLAGS = -O3 -fopenmp -std=c++14 -fdiagnostics-color=auto -I`pwd` -DOPENMP -DDOUBLEPRECISION
 endif
 
